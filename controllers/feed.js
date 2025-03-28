@@ -62,7 +62,7 @@ exports.getPost = (req, res, next) => {
     .then((post) => {
       if (!post) {
         const error = new Error('Could not find post!');
-        error.stausCode = 404;
+        error.statusCode = 404;
         throw error;
       }
       res.status(200).json({ message: 'Post Fetched', post: post });

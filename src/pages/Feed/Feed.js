@@ -187,11 +187,15 @@ class Feed extends Component {
     })
       .then((res) => res.json())
       .then((fileResData) => {
+        if (!fileResData.filePath) {
+          throw new Error('Image upload failed. No imageUrl returned.');
+        }
+
         const imageUrl = fileResData.filePath.replace(/\\/g, '/');
         let graphqlQuery = {
           query: `
             mutation postEdit($title: String!, $content: String!, $imageUrl: String!){
-                createPost(postInput:{title:"$title", content:"$content", imageUrl:"$imageUrl"})
+                createPost(postInput:{title:$title, content:$content, imageUrl:$imageUrl})
                 {
                   _id 
                   title
@@ -213,8 +217,8 @@ class Feed extends Component {
         if (this.state.editPost) {
           graphqlQuery = {
             query: `
-               mutation{
-                updatePost(id: "${this.state.editPost._id}",postInput:{title:"${postData.title}", content:"${postData.content}", imageUrl:"${imageUrl}"})
+               mutation updateExistingPost($id: ID!,$title: String!,$content: String!, $imageUrl: String!){
+                updatePost(id: $id,postInput:{title:$title, content:$content, imageUrl:$imageUrl})
                 {
                   _id 
                   title
@@ -227,6 +231,12 @@ class Feed extends Component {
               }
             }
             `,
+            variables: {
+              id: this.state.editPost._id,
+              title: postData.title,
+              content: postData.content,
+              imageUrl: imageUrl,
+            },
           };
         }
 
@@ -303,9 +313,12 @@ class Feed extends Component {
     this.setState({ postsLoading: true });
     const graphqlQuery = {
       query: `
-      mutation{
-        deletePost(id: "${postId}")
+      mutation PostDeletion($id: ID!){
+        deletePost(id: $id)
       }`,
+      variables: {
+        id: postId,
+      },
     };
     fetch('http://localhost:8080/graphql', {
       method: 'POST',
